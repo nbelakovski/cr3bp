@@ -1,3 +1,6 @@
+![](https://github.com/nbelakovski/cr3bp/actions/workflows/python-app.yml/badge.svg)
+
+
 # Intro
 
 This is a small library meant to facilitate investigation of trajectories
