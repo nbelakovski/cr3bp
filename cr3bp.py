@@ -22,7 +22,7 @@ class System:
     @property
     def total_mass(self):
         return self.mass_primary + self.mass_secondary
-    
+
     def convert_to_dimensional_state(self, state):
         state[0] *= self.l
         state[1] *= self.l
@@ -126,6 +126,7 @@ def dimensional_eoms(t, X, system=EarthMoon):
     Xdot[5] = zdoubledot
     return Xdot
 
+
 # Pass the mu of the system in here and you will get back a function which
 # can be passed to RK45 and the like
 def EOMConstructor(mu):
@@ -164,12 +165,12 @@ def R23(mu, Lx, Ly):
 
 def fxx(mu, Lx, Ly):
     return (1 - ((1-mu) / R13(mu, Lx, Ly)**3 - 3*(Lx + mu)**2 * (1 - mu) / R13(mu, Lx, Ly)**5)
-              - (mu / R23(mu, Lx, Ly)**3     - 3*(Lx - (1 - mu))**2 * mu / R23(mu, Lx, Ly)**5))
+              - (mu / R23(mu, Lx, Ly)**3 - 3*(Lx - (1 - mu))**2 * mu / R23(mu, Lx, Ly)**5))
 
 
 def fyy(mu, Lx, Ly):
     return (1 - ((1-mu) / R13(mu, Lx, Ly)**3 - 3 * (1 - mu) * Ly**2 / R13(mu, Lx, Ly)**5)
-              - (mu / R23(mu, Lx, Ly)**3     - 3 * mu * Ly**2 / R23(mu, Lx, Ly)**5))
+              - (mu / R23(mu, Lx, Ly)**3 - 3 * mu * Ly**2 / R23(mu, Lx, Ly)**5))
 
 
 def Lambda2(fxx, fyy, fxy=0):
