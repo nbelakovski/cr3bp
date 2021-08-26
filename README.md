@@ -1,4 +1,4 @@
-![](https://github.com/nbelakovski/cr3bp/actions/workflows/python-app.yml/badge.svg)
+![](https://github.com/nbelakovski/cr3bp/actions/workflows/build.yml/badge.svg)
 
 
 # Intro
