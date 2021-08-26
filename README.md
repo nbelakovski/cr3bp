@@ -1,4 +1,5 @@
-![](https://github.com/nbelakovski/cr3bp/actions/workflows/build.yml/badge.svg)
+![build](https://github.com/nbelakovski/cr3bp/actions/workflows/build.yml/badge.svg)
+[![codecov](https://codecov.io/gh/nbelakovski/cr3bp/branch/master/graph/badge.svg?token=CY00TY52ZL)](https://codecov.io/gh/nbelakovski/cr3bp)
 
 
 # Intro
