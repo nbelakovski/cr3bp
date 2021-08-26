@@ -76,12 +76,12 @@ be used for plotting or root finding.
 
 # Other functions
 
-`dimensional_eoms(t, X, system=EarthMoon)`  
+- `dimensional_eoms(t, X, system=EarthMoon)`  
 This function encodes the EOMs for the CR3BP using dimensional values (meters, seconds, etc.). It is meant to be used with a numerical integrator from scipy. For example:
 `scipy.integrate.solve_ivp(cr3bp.dimensional_eoms, [0, 3600*24], IC, args=[cr3bp.SunEarth], atol=1e-6, rtol=1e-12)`  
 In this case we are starting from some initial condition `IC` (a 6 element state vector) and integrating for 1 day using the SunEarth system with a tolerance down to the micrometer level (`atol=1e-6`)
   
-`EOMConstructor(mu)`  
+- `EOMConstructor(mu)`  
 This encodes the EOMs in dimensionless form but it's a little different from `dimensional_eoms` in that it takes a `mu` value and returns a function that can be used with numerical integrators. This just makes it a little smoother to use the numerical integrators since you specify the system when creating the EOMs as opposed to passing it in every time the EOMs are evaluated. Use this function like this:
 ```python
 EM = cr3bp.EarthMoon
@@ -89,5 +89,5 @@ eoms = cr3bp.EOMConstructor(EM.mu)
 # We set the absolute tolerance to be at the micrometer level and keep the rtol small enough so that the atol dominates. rtol cannot be set lower than machine precision, so there may be some precision issues here which make it preferable to use the dimensional EOMs, since atol for EarthMoon here is 2.6e-15
 solution = scipy.integrate.solve_ivp(eoms, [0, 3600*24 / EM.seconds], IC, atol=0.000001/EM.l, rtol=2.3e-14)
 ```   
-`initial_velocity(initial_position: tuple[float, float], lpoint: float, mu: float) -> tuple[float, float]:`  
+- `initial_velocity(initial_position: tuple[float, float], lpoint: float, mu: float) -> tuple[float, float]:`  
 This function takes a dimensionless initial position consisting of x and y position relative to a Lagrange point, the dimensionless value of the Lagrange point to which that x and y are relative (this function is meant to be used for collinear points, hence why it only takes a single float value) and the mu of the system and returns the necessary initial x and y velocity to get onto an oscillatory trajectory around the Lagrange point
