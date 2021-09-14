@@ -2,6 +2,8 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import root_scalar
 
+__version__ = "0.2.1"
+
 
 @dataclass
 class System:
