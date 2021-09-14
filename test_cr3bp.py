@@ -14,7 +14,7 @@ import numpy as np
 def test_initial_velocity():
     EM = cr3bp.EarthMoon
     # relative to Lagrange point in m
-    initial_position = [1000/EM.l, 2000/EM.l]
+    initial_position = [EM.L1 + 1000/EM.l, 2000/EM.l]
     iv = cr3bp.initial_velocity(initial_position, EM.L1, EM.mu)
     assert np.isclose(iv[0], 3.3864846085849844e-06)
     assert np.isclose(iv[1], -2.1781128578193083e-05)
@@ -43,7 +43,7 @@ def test_dimensional_EOMS():
     IC = [cr3bp.SunEarth.L1*cr3bp.SunEarth.l + 1000000, 0, 0, 0, 0, 0]  # m
     # We set the absolute tolerance to be at the micrometer level and keep the rtol small enough so that
     # the atol dominates
-    solution = solve_ivp(cr3bp.dimensional_eoms, [0, tf], IC, args=[cr3bp.SunEarth], atol=1e-6, rtol=1e-12)
+    solution = solve_ivp(cr3bp.DimensionalEOMs, [0, tf], IC, args=[cr3bp.SunEarth], atol=1e-6, rtol=1e-12)
     final_state = solution.y.T[-1]
     assert np.isclose(final_state, [1.48109206e+11, -5.32205049e+03,  0.00000000e+00,
                                     2.21611267e-01, -2.64256808e-02,  0.00000000e+00]).all()
@@ -75,7 +75,7 @@ def test_conversion():
     # then run dimensional
     tf = tf * EM.seconds  # s
     IC = EM.convert_to_dimensional_state(IC)  # m
-    solution = solve_ivp(cr3bp.dimensional_eoms, [0, tf], IC, args=[EM], atol=1e-6, rtol=1e-12)
+    solution = solve_ivp(cr3bp.DimensionalEOMs, [0, tf], IC, args=[EM], atol=1e-6, rtol=1e-12)
     final_state_dimensional = solution.y.T[-1]
 
     # then run converter
