@@ -5,6 +5,12 @@ from scipy.optimize import root_scalar
 
 @dataclass
 class System:
+    '''A dataclass representing a 3 body system with 2 massive primary bodies
+    and a third body of negligible mass. Several systems are provided, including
+    Earth-Moon, Sun-Earth, and Sun-Jupiter. To instantiate your own, construct
+    a new System using System(mass_primary, mass_secondary, distance) where
+    the first 2 values are expected in kg and the last in m (not km)'''
+
     mass_primary: float  # kg
     mass_secondary: float  # kg
     l: float  # m
@@ -24,22 +30,33 @@ class System:
         return self.mass_primary + self.mass_secondary
 
     def convert_to_dimensional_state(self, state):
-        state[0] *= self.l
-        state[1] *= self.l
-        state[2] *= self.l
-        state[3] *= self.l/self.seconds
-        state[4] *= self.l/self.seconds
-        state[5] *= self.l/self.seconds
-        return state
+        '''Pass in a dimensionless state and you will be given back
+        dimensional values'''
+        return state * self.conversion_vector
 
-    # Number of seconds in a non-dimensional second
+    @property
+    def conversion_vector(self):
+        '''Multiply this with the state to get dimensional values'''
+        return np.array([self.l,
+                         self.l,
+                         self.l,
+                         self.l/self.s,
+                         self.l/self.s,
+                         self.l/self.s])
+
     @property
     def seconds(self):
+        '''Number of seconds in a non-dimensional second'''
         return 1 / self.theta_dot
 
-    # Equation for equilibrium points along the x axis, used for finding L1,
-    # L2, L3
+    @property
+    def s(self):
+        ''' Alias for number of seconds in a nondimensional second'''
+        return self.seconds
+
     def x_eqn(self):
+        '''Equation for equilibrium points along the x axis, used for finding L1,
+        L2, L3'''
         def func(x):
             return (-(1 - self.mu)/((x + self.mu) * abs(x + self.mu))
                     - self.mu/((x - (1 - self.mu)) * abs(x - (1 - self.mu)))
@@ -97,7 +114,7 @@ def r23(x, y, z, mu):
 
 
 # For those who want to work directly in meters and seconds, use this
-def dimensional_eoms(t, X, system=EarthMoon):
+def DimensionalEOMs(t, X, system=EarthMoon):
     G = system.G
     Xdot = np.zeros(len(X))
     Xdot[:3] = X[3:6]
@@ -129,15 +146,12 @@ def dimensional_eoms(t, X, system=EarthMoon):
 
 # Pass the mu of the system in here and you will get back a function which
 # can be passed to RK45 and the like
-def EOMConstructor(mu):
-    def eoms(t, X, mu=mu):
-        Xdot = np.zeros(len(X))
+def EOMConstructor(mu, STM=False):
+    def NonLinearEOMs(t, X, mu=mu):
+        Xdot = np.zeros(6)
         Xdot[:3] = X[3:6]
-        x = X[0]
-        y = X[1]
-        z = X[2]
-        xdot = X[3]
-        ydot = X[4]
+        (x, y, z) = (X[0], X[1], X[2])
+        (xdot, ydot) = (X[3], X[4])
         xdoubledot = (x
                       + 2 * ydot
                       - (1 - mu)*(x + mu)/(r13(x, y, z, mu)**3)
@@ -152,25 +166,65 @@ def EOMConstructor(mu):
         Xdot[4] = ydoubledot
         Xdot[5] = zdoubledot
         return Xdot
-    return eoms
+
+    if STM:
+        def EOMs(t, X, mu=mu):
+            Xdot = np.zeros(len(X))
+            Xdot[:6] = NonLinearEOMs(t, X, mu)
+            STM = X[6:].reshape((6, 6))
+            (x, y, z) = (X[0], X[1], X[2])
+            STMdot = A(x, y, z, mu) @ STM
+            Xdot[6:] = STMdot.reshape(36)
+            return Xdot
+    else:
+        def EOMs(t, X, mu=mu):
+            return NonLinearEOMs(t, X, mu)
+    return EOMs
 
 
-def R13(mu, Lx, Ly):
-    return np.sqrt((Lx + mu)**2 + Ly**2)
+def A(x, y, z, mu):
+    Fxx = fxx(x, y, z, mu)
+    Fyy = fyy(x, y, z, mu)
+    Fzz = fzz(x, y, z, mu)
+    Fxy = fxy(x, y, z, mu)
+    Fyz = fyz(x, y, z, mu)
+    Fxz = fxz(x, y, z, mu)
+    A = np.array([[0,     0,   0,  1, 0, 0],
+                  [0,     0,   0,  0, 1, 0],
+                  [0,     0,   0,  0, 0, 1],
+                  [Fxx, Fxy, Fxz,  0, 2, 0],
+                  [Fxy, Fyy, Fyz, -2, 0, 0],
+                  [Fxz, Fyz, Fzz,  0, 0, 0],
+                  ])
+    return A
 
 
-def R23(mu, Lx, Ly):
-    return np.sqrt((Lx - (1 - mu))**2 + Ly**2)
+def fxx(x, y, z, mu):
+    return (1 - ((1-mu) / r13(x, y, z, mu)**3 - 3*(x + mu)**2 * (1 - mu) / r13(x, y, z, mu)**5)
+              - (mu / r23(x, y, z, mu)**3 - 3*(x - (1 - mu))**2 * mu / r23(x, y, z, mu)**5))
 
 
-def fxx(mu, Lx, Ly):
-    return (1 - ((1-mu) / R13(mu, Lx, Ly)**3 - 3*(Lx + mu)**2 * (1 - mu) / R13(mu, Lx, Ly)**5)
-              - (mu / R23(mu, Lx, Ly)**3 - 3*(Lx - (1 - mu))**2 * mu / R23(mu, Lx, Ly)**5))
+def fyy(x, y, z, mu):
+    return (1 - ((1-mu) / r13(x, y, z, mu)**3 - 3 * (1 - mu) * y**2 / r13(x, y, z, mu)**5)
+              - (mu / r23(x, y, z, mu)**3 - 3 * mu * y**2 / r23(x, y, z, mu)**5))
 
 
-def fyy(mu, Lx, Ly):
-    return (1 - ((1-mu) / R13(mu, Lx, Ly)**3 - 3 * (1 - mu) * Ly**2 / R13(mu, Lx, Ly)**5)
-              - (mu / R23(mu, Lx, Ly)**3 - 3 * mu * Ly**2 / R23(mu, Lx, Ly)**5))
+def fzz(x, y, z, mu):
+    return -((1 - mu) / r13(x, y, z, mu)**3 + mu / r23(x, y, z, mu)**3) + 3 * z**2 * (
+            (1 - mu) / r13(x, y, z, mu)**5 + mu / r23(x, y, z, mu)**5)
+
+
+def fxy(x, y, z, mu):
+    return (3 * (1 - mu) * (x + mu) * y / r13(x, y, z, mu)**5
+            + 3 * mu * (x - (1 - mu)) * y / r23(x, y, z, mu)**5)
+
+
+def fxz(x, y, z, mu):
+    return 3 * z * ((1-mu)*(x+mu)/r13(x, y, z, mu)**5 + mu*(x-(1-mu))/r23(x, y, z, mu)**5)
+
+
+def fyz(x, y, z, mu):
+    return 3 * y * z * ((1 - mu) / r13(x, y, z, mu)**5 + mu / r23(x, y, z, mu)**5)
 
 
 def Lambda2(fxx, fyy, fxy=0):
@@ -178,9 +232,9 @@ def Lambda2(fxx, fyy, fxy=0):
 
 
 def initial_velocity(initial_position: tuple[float, float], lpoint: float, mu: float) -> tuple[float, float]:
-    fxxL1 = fxx(mu, lpoint, 0)
-    fyyL1 = fyy(mu, lpoint, 0)
-    Lamb2 = Lambda2(fxxL1, fyyL1)
-    xdot = (-2 * Lamb2)/(fxxL1 - Lamb2) * initial_position[1]
-    ydot = -(fxxL1 - Lamb2)/2 * initial_position[0]
+    fxxL = fxx(lpoint, 0, 0, mu)
+    fyyL = fyy(lpoint, 0, 0, mu)
+    Lamb2 = Lambda2(fxxL, fyyL)
+    xdot = (-2 * Lamb2)/(fxxL - Lamb2) * initial_position[1]
+    ydot = -(fxxL - Lamb2)/2 * (initial_position[0] - lpoint)
     return (xdot, ydot)
