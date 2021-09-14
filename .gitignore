@@ -2,3 +2,6 @@ __pycache__
 htmlcov
 .coverage
 .vscode
+build
+dist
+cr3bp.egg-info
