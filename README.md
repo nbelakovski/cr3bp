@@ -6,6 +6,10 @@
 
 This is a small library meant to facilitate investigation of the Circular Restricted 3 Body Problem (CR3BP)
 
+# Installation
+
+`pip3 install cr3bp`
+
 # Usage
 
 The library consists of a `System` dataclass representing a 3 body system,
